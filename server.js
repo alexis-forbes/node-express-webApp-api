@@ -2,6 +2,20 @@
 const mongoose = require('mongoose');
 
 const dotenv = require('dotenv');
+
+/* ----------- Handle uncaught exceptions -------------- */
+// e.g. calling something not defined
+// console.log(x);
+// needs to be listening from the beginning that is why it is here
+process.on('uncaughtException', (err) => {
+  console.log(err.name, err.message);
+  console.log('UNCAUGHT EXCEPTION! App crashed! Shutting down...');
+  // gracefully shutdown server
+  process.exit(1);
+  // here we could restart the application (normally in production)
+  // many hosting services do that out of the box
+});
+
 // it will read the variables and save them as env variables
 // we need to do this before requiring our app as we configure Morgan there
 dotenv.config({ path: './config.env' });
@@ -37,7 +51,24 @@ mongoose
 
 /* ----------- Setting up the server -------------- */
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
+const server = app.listen(port, () => {
   // will be called as soon as server starts listening
   console.log(`listening on port ${port}`);
+});
+
+/* ----------- Handle unhandled rejections -------------- */
+// e.g wrong password when connecting the DB
+// each time there is an unhandled rejection in the app, the process object will emit an object called unhandledRejection
+// we can subscribe to that event
+//this is the last safety net
+process.on('unhandledRejection', (err) => {
+  console.log(err.name, err.message);
+  console.log('UNHANDLED REJECTION! App crashed! Shutting down...');
+  // 0 => success 1 => uncaught exception
+  // shut down gracefully: first shutdown server
+  server.close(() => {
+    // and then shut the application
+    process.exit(1);
+  });
+  // here we could restart the application (normally in production)
 });

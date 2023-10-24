@@ -6,6 +6,12 @@ const app = express();
 // for logging purposes
 const morgan = require('morgan');
 
+//custom AppError class
+const AppError = require('./utils/appError');
+
+//error middleware handler
+const globalErrorHandler = require('./controllers/errorController');
+
 /* ------ APP FLOW EXPLINATION -------- */
 /* We start by receiving a request in app.js file, 
 it will then depending on the route enter one of the routers in the routes folder. 
@@ -63,5 +69,22 @@ app.use((req, res, next) => {
 // mounting the routers into the routes
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
+
+/* ------ ROUTE HANDLER FOR NON-EXISTING ROUTES -------- */
+//at the end because if the above routes have not catched any route, it means it does not exist
+//if we do it above, every request will hit this route
+//app.all => for all http methods
+//* => everything
+app.all('*', (req, res, next) => {
+  //send a JSON response
+  // res.status(404).json({
+  //   status: 'fail',
+  //   message: `Can't find ${req.originalUrl} on this server!`,
+  // });
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+});
+
+/* ------ ERROR MIDDLEWARE -------- */
+app.use(globalErrorHandler);
 
 module.exports = app;
